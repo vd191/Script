@@ -1,8 +1,5 @@
-// This work is licensed under a Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0) https://creativecommons.org/licenses/by-nc-sa/4.0/
-// © LuxAlgo
-
 //@version=5
-indicator("Market Structure with Inducements & Sweeps [LuxAlgo]", "LuxAlgo - Market Structure with Inducements & Sweeps", overlay = true, max_lines_count = 500, max_labels_count = 500)
+indicator("VD Works - Market Structure", overlay = true)
 //---------------------------------------------------------------------------------------------------------------------}
 //Settings
 //---------------------------------------------------------------------------------------------------------------------{
@@ -47,6 +44,7 @@ swings(len)=>
     btmx := os == 1 and os[1] != 1 ? n[len] : btmx
 
     [top, topx, btm, btmx]
+
 
 //---------------------------------------------------------------------------------------------------------------------}
 //Swings
@@ -211,4 +209,3 @@ if barstate.islast
 plot(showCircles ? top : na, 'Swing High', color.new(bearCss, 50), 5, plot.style_circles, offset = -len)
 plot(showCircles ? btm : na, 'Swing Low', color.new(bullCss, 50), 5, plot.style_circles, offset = -len)
 
-//---------------------------------------------------------------------------------------------------------------------}

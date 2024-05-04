@@ -1,0 +1,65 @@
+//@version=5
+indicator("VD Works - Market Structure", overlay = true)
+//---------------------------------------------------------------------------------------------------------------------}
+// Ichimoku: Trend dectection - Break of Structure and Change of character
+// IDM and Sweep: To consume available liquidity - The large counter trend orders which are placed 
+// Engulfing: Confirm the trend going to continue after the large orders are gone.
+//---------------------------------------------------------------------------------------------------------------------{
+
+//---------------------------------------------------------------------------------------------------------------------}
+// Settings
+//---------------------------------------------------------------------------------------------------------------------{
+
+// Styles - Common
+bullCss = input(#089981, 'Bullish Elements', group = 'Common styles')
+bearCss = input(#ff5252, 'Bearish Elements', group = 'Common styles')
+
+
+// Default Value - Ichimoku
+showConversionPeriods = input(true, "Conversion Line Length", inline = 'conversionLine', group = 'Ichimoku')
+conversionPeriods = input.int(9, minval=1, inline = 'conversionLine', group = 'Ichimoku')
+conversionPeriodsCss = input(#089981, "", inline = 'conversionLine', group = 'Ichimoku')
+
+showBasePeriods = input(true, "Base Line Length", inline = 'baseLine', group = 'Ichimoku')
+basePeriods = input.int(26, minval=1, inline = 'baseLine', group = 'Ichimoku')
+basePeriodsCss = input(#089981, "", inline = 'baseLine', group = 'Ichimoku')
+
+showlaggingSpan2Periods = input(true, "Leading Span B Length", inline = 'laggingSpan2', group = 'Ichimoku')
+laggingSpan2Periods = input.int(52, minval=1, inline = 'laggingSpan2', group = 'Ichimoku')
+laggingSpan2PeriodsCss = input(#089981, "", inline = 'laggingSpan2', group = 'Ichimoku')
+
+showdisplacement = input(true, "Lagging Span", inline = 'displacement', group = 'Ichimoku')
+displacement = input.int(26, minval=1,  inline = 'displacement', group = 'Ichimoku')
+
+
+// Default Value - IDM and Sweep
+len = input(50, 'CHoCH Detection Period', group = 'Liquidity Sweep')
+shortLen = input(3, 'IDM Detection Period', group = 'Liquidity Sweep')
+
+showIdm = input(true, "Show Inducements", inline = 'idm', group = 'Liquidity Sweep')
+idmCss = input(color.gray, "", inline = 'idm', group = 'Liquidity Sweep')
+
+showSweeps = input(true, "Show Sweeps", inline = 'sweeps', group = 'Liquidity Sweep')
+sweepsCss = input(color.gray, "", inline = 'sweeps', group = 'Liquidity Sweep')
+
+showCircles = input(true, "Show Swings", group = 'Liquidity Sweep')
+
+//---------------------------------------------------------------------------------------------------------------------}
+// ICHIMOKU
+//---------------------------------------------------------------------------------------------------------------------{
+
+donchian(length) => math.avg(ta.lowest(length), ta.highest(length))
+
+conversionLine = donchian(conversionPeriods)
+baseLine = donchian(basePeriods)
+leadLine1 = math.avg(conversionLine, baseLine)
+leadLine2 = donchian(laggingSpan2Periods)
+
+plot(conversionLine, color=bullCss, title="Conversion Line")
+plot(baseLine, color=bullCss, title="Base Line")
+
+p1 = plot(leadLine1, offset = displacement - 1, color=#A5D6A7, title="Leading Span A")
+p2 = plot(leadLine2, offset = displacement - 1, color=#EF9A9A, title="Leading Span B")
+fill(p1, p2, color = leadLine1 > leadLine2 ? bullCss : bearCss)
+
+

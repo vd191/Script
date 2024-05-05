@@ -36,10 +36,11 @@ highCss = commonMoreGreen
 lowCss = commonMoreRed
 sweepsCss = commonGrey
 textColor = commonGrey
+greyCss = commonGrey
 
 // Tooltops
-var ttBearishEngulfing = "Engulfing\nAt the end of a given uptrend, a reversal pattern will most likely appear. During the first day, this candlestick pattern uses a small body. It is then followed by a day where the candle body fully overtakes the body from the day before it and closes in the trend's opposite direction. Although similar to the outside reversal chart pattern, it is not essential for this pattern to fully overtake the range (high to low), rather only the open and the close."
-var ttBullishEngulfing = "Engulfing\nAt the end of a given downward trend, there will most likely be a reversal pattern. To distinguish the first day, this candlestick pattern uses a small body, followed by a day where the candle body fully overtakes the body from the day before, and closes in the trend's opposite direction. Although similar to the outside reversal chart pattern, it is not essential for this pattern to completely overtake the range (high to low), rather only the open and the close."
+var ttBearishEngulfing = "Bearish Engulfing\n"
+var ttBullishEngulfing = "Bullish Engulfing\n"
 
 // Ichimoku default input values
 showIchimoku = input(true, "Show Ichimoku", group = 'Ichimoku')
@@ -54,8 +55,8 @@ showBos = input(false, "Show BOS", group = 'Liquidity Sweep')
 showIdm = input(true, "Show Inducements", inline = 'idm', group = 'Liquidity Sweep')
 showSweeps = input(true, "Show Sweeps", inline = 'sweeps', group = 'Liquidity Sweep')
 showCircles = input(true, "Show Swings", group = 'Liquidity Sweep')
-len = input.int(1, minval=1, title = 'CHoCH Detection Period', group = 'Liquidity Sweep')
-shortLen = input.int(1, minval=1, title = 'IDM Detection Period', group = 'Liquidity Sweep')
+len = input.int(50, minval=1, title = 'CHoCH Detection Period', group = 'Liquidity Sweep')
+shortLen = input.int(3, minval=1, title = 'IDM Detection Period', group = 'Liquidity Sweep')
 
 // Engufling
 showEnguflingBg = input(false, "Show Engufling Background", group = 'Engufling')
@@ -63,13 +64,17 @@ showEnguflingLabel = input(true, "Show Engufling Label", group = 'Engufling')
 var trendRule1 = "SMA50"
 var trendRule2 = "SMA50, SMA200"
 var trendRule3 = "Ichimoku Baseline"
-var trendRule = input.string(trendRule1, "Engufling Detect Trend Based On", options=[trendRule3, trendRule1, trendRule2, "No detection"], group = 'Engufling')
+var trendRule4 = "Ichimoku Cloud"
+var trendRule = input.string(trendRule1, "Engufling Detect Trend Based On", options=[trendRule4, trendRule3, trendRule1, trendRule2, "No detection"], group = 'Engufling')
 
 // Liquidity Followed by Engulfing
 showSweepEngulfing = input(false, "Show Liquidity Followed by Engulfing", group = 'Liquidity Followed by Engulfing')
 
-// Liquidity Followed by Ichimoku baseline
-showSweepBaseline = input(true, "Show Liquidity Followed by Baseline", group = 'Liquidity Followed by Baseline')
+// Liquidity Followed by Ichimoku Baseline
+showSweepBaseline = input(false, "Show Liquidity Followed by Baseline", group = 'Liquidity Followed by Baseline')
+
+// Liquidity Followed by Ichimoku Cloud
+showSweepCloud = input(false, "Show Liquidity Followed by Cloud", group = 'Liquidity Followed by Cloud')
 
 //---------------------------------------------------------------------------------------------------------------------}
 // Ichimoku
@@ -81,6 +86,9 @@ conversionLine = donchian(conversionPeriods)
 baseLine = donchian(basePeriods)
 leadLine1 = math.avg(conversionLine, baseLine)
 leadLine2 = donchian(laggingSpan2Periods)
+
+cloudBearish =  leadLine1 < leadLine2
+cloudBullish = leadLine1 > leadLine2
 
 plot(showIchimoku ? conversionLine : na, color=conversionLineCss, title="Conversion Line", display = display.none)
 plot(showIchimoku ? baseLine: na, color=baseLineCss, title="Base Line", linewidth = 2)
@@ -242,13 +250,15 @@ var ext_idm_lbl   = label.new(na,na, 'IDM'  , color = color(na), size = size.tin
 
 if barstate.islast
     if os == 1
-        ext_choch.set_xy1(btmx, btmy), ext_choch.set_xy2(n, btmy), ext_choch.set_color(commonLightRed)    
-        ext_choch_lbl.set_xy(n, btmy), ext_choch_lbl.set_style(label.style_label_up), ext_choch_lbl.set_textcolor(commonLightRed)
+        if showChoch
+            ext_choch.set_xy1(btmx, btmy), ext_choch.set_xy2(n, btmy), ext_choch.set_color(greyCss)    
+            ext_choch_lbl.set_xy(n, btmy), ext_choch_lbl.set_style(label.style_label_up), ext_choch_lbl.set_textcolor(greyCss)
         
-        ext_bos.set_xy1(max_x1, max), ext_bos.set_xy2(n, max), ext_bos.set_color(commonLightGreen)    
-        ext_bos_lbl.set_xy(n, max), ext_bos_lbl.set_style(label.style_label_down), ext_bos_lbl.set_textcolor(commonLightGreen)
-        
-        if not sbtm_crossed
+        if showBos    
+            ext_bos.set_xy1(max_x1, max), ext_bos.set_xy2(n, max), ext_bos.set_color(greyCss)    
+            ext_bos_lbl.set_xy(n, max), ext_bos_lbl.set_style(label.style_label_down), ext_bos_lbl.set_textcolor(greyCss)
+            
+        if not sbtm_crossed and showIdm
             ext_idm.set_xy1(sbtmx, sbtmy), ext_idm.set_xy2(n+15, sbtmy)   
             ext_idm_lbl.set_xy(n+15, sbtmy), ext_idm_lbl.set_style(label.style_label_up)
             ext_idm.set_color(commonGrey), ext_idm_lbl.set_textcolor(commonGrey)
@@ -256,13 +266,14 @@ if barstate.islast
             ext_idm.set_color(na)
             ext_idm_lbl.set_textcolor(na)
     else
-        ext_choch.set_xy1(topx, topy), ext_choch.set_xy2(n, topy), ext_choch.set_color(commonLightGreen)    
-        ext_choch_lbl.set_xy(n, topy), ext_choch_lbl.set_style(label.style_label_down), ext_choch_lbl.set_textcolor(commonLightGreen)
-        
-        ext_bos.set_xy1(min_x1, min), ext_bos.set_xy2(n, min), ext_bos.set_color(commonLightRed)    
-        ext_bos_lbl.set_xy(n, min), ext_bos_lbl.set_style(label.style_label_up), ext_bos_lbl.set_textcolor(commonLightRed)
+        if showChoch
+            ext_choch.set_xy1(topx, topy), ext_choch.set_xy2(n, topy), ext_choch.set_color(greyCss)    
+            ext_choch_lbl.set_xy(n, topy), ext_choch_lbl.set_style(label.style_label_down), ext_choch_lbl.set_textcolor(greyCss)
+        if showBos
+            ext_bos.set_xy1(min_x1, min), ext_bos.set_xy2(n, min), ext_bos.set_color(greyCss)    
+            ext_bos_lbl.set_xy(n, min), ext_bos_lbl.set_style(label.style_label_up), ext_bos_lbl.set_textcolor(greyCss)
 
-        if not stop_crossed
+        if not stop_crossed and showIdm
             ext_idm.set_xy1(stopx, stopy), ext_idm.set_xy2(n+15, stopy)   
             ext_idm_lbl.set_xy(n+15, stopy), ext_idm_lbl.set_style(label.style_label_down)
             ext_idm.set_color(commonGrey), ext_idm_lbl.set_textcolor(commonGrey)
@@ -280,20 +291,24 @@ plot(showCircles ? btm : na, 'Swing Low', lowCss, 5, plot.style_circles, offset 
 C_DownTrend = true
 C_UpTrend = true
 
+if trendRule == trendRule4
+    C_DownTrend := close < leadLine1 and close < leadLine2 and leadLine1 < leadLine2
+	C_UpTrend := close > leadLine1 and close > leadLine2 and leadLine1 > leadLine2 
+
 if trendRule == trendRule3
-    C_DownTrend := close > baseLine
-	C_UpTrend := close < baseLine
+    C_UpTrend := close > baseLine
+	C_DownTrend := close < baseLine
 
 if trendRule == trendRule1
 	priceAvg = ta.sma(close, 50)
-	C_DownTrend := close > priceAvg
-	C_UpTrend := close < priceAvg
+	C_UpTrend := close > priceAvg
+	C_DownTrend := close < priceAvg
 
 if trendRule == trendRule2
 	sma200 = ta.sma(close, 200)
 	sma50 = ta.sma(close, 50)
-	C_DownTrend := close > sma50 and sma50 > sma200
-	C_UpTrend := close < sma50 and sma50 < sma200
+	C_UpTrend := close > sma50 and sma50 > sma200
+	C_DownTrend := close < sma50 and sma50 < sma200
 
 C_Len = 14 // ta.ema depth for bodyAvg
 C_ShadowPercent = 5.0 // size of shadows
@@ -325,7 +340,7 @@ patternLabelPosHigh = high + (ta.atr(30) * 0.6)
 
 // Engulfing Bearish
 C_EngulfingBearishNumberOfCandles = 2
-C_EngulfingBearish = C_UpTrend and C_BlackBody and C_LongBody and C_WhiteBody[1] and C_SmallBody[1] and close <= open[1] and open >= close[1] and ( close < open[1] or open > close[1] )
+C_EngulfingBearish = C_DownTrend and C_BlackBody and C_LongBody and C_WhiteBody[1] and C_SmallBody[1] and close <= open[1] and open >= close[1] and ( close < open[1] or open > close[1] )
 
 if C_EngulfingBearish
 
@@ -336,7 +351,7 @@ bgcolor( engulfingBearishBg ? lightRedCss : na, offset=-(C_EngulfingBearishNumbe
 
 // Engulfing Bullish
 C_EngulfingBullishNumberOfCandles = 2
-C_EngulfingBullish = C_DownTrend and C_WhiteBody and C_LongBody and C_BlackBody[1] and C_SmallBody[1] and close >= open[1] and open <= close[1] and ( close > open[1] or open < close[1] )
+C_EngulfingBullish = C_UpTrend and C_WhiteBody and C_LongBody and C_BlackBody[1] and C_SmallBody[1] and close >= open[1] and open <= close[1] and ( close > open[1] or open < close[1] )
 
 if C_EngulfingBullish
     label.new(bar_index, showEnguflingLabel ? patternLabelPosLow : na, text="BE", style=label.style_label_up, color = lightBlueCss, textcolor=textColor, tooltip = ttBullishEngulfing)
@@ -356,24 +371,29 @@ alertcondition(C_EngulfingBullish, title = "Bullish Engulfing", message = "New E
 alertcondition(C_EngulfingBullish or C_EngulfingBearish, title = "Engulfing", message = "New Engulfing - Pattern detected")
 
 // Strategy alerts
+
+// Liquidity Followed by Engulfing
 previousSweep = sweepHigh[1] or sweepLow[1]
 previousIdm = idmHigh[1] or idmLow[1]
 previousLiquidity = previousSweep or previousIdm
-
 bearishSweepAndEngulfingSignal = previousLiquidity and C_EngulfingBearish
 bullishSweepAndEngulfingSignal = previousLiquidity and C_EngulfingBullish
-
 alertcondition(bearishSweepAndEngulfingSignal or bullishSweepAndEngulfingSignal, title="Liquidity Followed by Engulfing", message="A liquidity followed by an engulfing pattern was detected.")
-
 plotshape(series= showSweepEngulfing ? bearishSweepAndEngulfingSignal : na, location=location.abovebar, color=color.red, style=shape.labeldown, title="Bearish Engulfing After Sweep", text="Bearish")
 plotshape(series=showSweepEngulfing ? bullishSweepAndEngulfingSignal : na, location=location.belowbar, color=color.green, style=shape.labelup, title="Bullish Engulfing After Sweep", text="Bullish")
 
+// Liquidity Followed by Baseline
 nextCandleLower = close < close[1]
 nextCandleHiger = close > close[1]
-
 bearishSweepAndBaselineSignal = close < baseLine and previousLiquidity and nextCandleLower
 bullishSweepAndBaselineSignal = close > baseLine and previousLiquidity and nextCandleHiger
-
-alertcondition(bearishSweepAndBaselineSignal or bullishSweepAndBaselineSignal, title="Liquidity Followed by Ichimoku", message="A liquidity followed by ichimoku baseline trend was detected.")
+alertcondition(bearishSweepAndBaselineSignal or bullishSweepAndBaselineSignal, title="Liquidity Followed by Baseline", message="A liquidity followed by the baseline trend was detected.")
 plotshape(series= showSweepBaseline ? bearishSweepAndBaselineSignal : na, location=location.abovebar, color=color.red, style=shape.labeldown, title="Bearish Sweep After Baseline", text="Bearish")
 plotshape(series= showSweepBaseline ? bullishSweepAndBaselineSignal : na, location=location.belowbar, color=color.green, style=shape.labelup, title="Bullish Sweep After Baseline", text="Bullish")
+
+// Liquidity Followed by Cloud
+bearishSweepAndCloudSignal = close < leadLine1 and cloudBearish and previousLiquidity and nextCandleLower
+bullishSweepAndCloudSignal = close > leadLine1 and cloudBullish and previousLiquidity and nextCandleHiger
+alertcondition(bearishSweepAndCloudSignal or bullishSweepAndCloudSignal, title="Liquidity Followed by Cloud", message="A liquidity followed by the cloud trend was detected.")
+plotshape(series= showSweepCloud ? bearishSweepAndCloudSignal : na, location=location.abovebar, color=color.red, style=shape.labeldown, title="Bearish Sweep After Cloud", text="Bearish")
+plotshape(series= showSweepCloud ? bullishSweepAndCloudSignal : na, location=location.belowbar, color=color.green, style=shape.labelup, title="Bullish Sweep After Cloud", text="Bullish")

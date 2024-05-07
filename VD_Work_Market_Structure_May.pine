@@ -19,6 +19,7 @@ commonLightBlue = color.new(color.blue, 90)
 commonMoreGreen = color.new(#089981, 50)  
 commonMoreRed = color.new(#ff5252, 50)    
 commonGrey = color.gray
+commonWhite = color.white
 
 // Ichimoku colour variables
 bullCss = commonGreen
@@ -37,6 +38,7 @@ lowCss = commonMoreRed
 sweepsCss = commonGrey
 textColor = commonGrey
 greyCss = commonGrey
+whiteCss = commonWhite
 
 // Tooltops
 var ttBearishEngulfing = "Bearish Engulfing\n"
@@ -60,21 +62,20 @@ shortLen = input.int(3, minval=1, title = 'IDM Detection Period', group = 'Liqui
 
 // Engufling
 showEnguflingBg = input(false, "Show Engufling Background", group = 'Engufling')
-showEnguflingLabel = input(true, "Show Engufling Label", group = 'Engufling')
+showEnguflingLabel = input(false, "Show Engufling Label", group = 'Engufling')
 var trendRule1 = "SMA50"
 var trendRule2 = "SMA50, SMA200"
 var trendRule3 = "Ichimoku Baseline"
 var trendRule4 = "Ichimoku Cloud"
-var trendRule = input.string(trendRule1, "Engufling Detect Trend Based On", options=[trendRule4, trendRule3, trendRule1, trendRule2, "No detection"], group = 'Engufling')
+var trendRule = input.string(trendRule1, "Engufling Detect Trend Based On", options=["No detection", trendRule4, trendRule3, trendRule1, trendRule2], group = 'Engufling')
 
-// Liquidity Followed by Engulfing
-showSweepEngulfing = input(false, "Show Liquidity Followed by Engulfing", group = 'Liquidity Followed by Engulfing')
+// Show Reversal Pattern
+showReversalPattern = input(false, "Show Reversal Pattern", group = 'Reversal Pattern')
 
-// Liquidity Followed by Ichimoku Baseline
-showSweepBaseline = input(false, "Show Liquidity Followed by Baseline", group = 'Liquidity Followed by Baseline')
+// Show Continuation Pattern
+showContinuationPattern = input(false, "Show Continuation Pattern", group = 'Continuation Pattern')
 
-// Liquidity Followed by Ichimoku Cloud
-showSweepCloud = input(false, "Show Liquidity Followed by Cloud", group = 'Liquidity Followed by Cloud')
+
 
 //---------------------------------------------------------------------------------------------------------------------}
 // Ichimoku
@@ -370,30 +371,33 @@ alertcondition(C_EngulfingBearish, title = "Bearish Engulfing", message = "New E
 alertcondition(C_EngulfingBullish, title = "Bullish Engulfing", message = "New Engulfing - Bullish pattern detected")
 alertcondition(C_EngulfingBullish or C_EngulfingBearish, title = "Engulfing", message = "New Engulfing - Pattern detected")
 
+//---------------------------------------------------------------------------------------------------------------------}
 // Strategy alerts
-
-// Liquidity Followed by Engulfing
-previousSweep = sweepHigh[1] or sweepLow[1]
-previousIdm = idmHigh[1] or idmLow[1]
-previousLiquidity = previousSweep or previousIdm
-bearishSweepAndEngulfingSignal = previousLiquidity and C_EngulfingBearish
-bullishSweepAndEngulfingSignal = previousLiquidity and C_EngulfingBullish
-alertcondition(bearishSweepAndEngulfingSignal or bullishSweepAndEngulfingSignal, title="Liquidity Followed by Engulfing", message="A liquidity followed by an engulfing pattern was detected.")
-plotshape(series= showSweepEngulfing ? bearishSweepAndEngulfingSignal : na, location=location.abovebar, color=color.red, style=shape.labeldown, title="Bearish Engulfing After Sweep", text="Bearish")
-plotshape(series=showSweepEngulfing ? bullishSweepAndEngulfingSignal : na, location=location.belowbar, color=color.green, style=shape.labelup, title="Bullish Engulfing After Sweep", text="Bullish")
-
-// Liquidity Followed by Baseline
+//---------------------------------------------------------------------------------------------------------------------{
+// Reversal Potential Pattern - After having a sweep liquidity and a strong candle
+previousSweepHigh = sweepHigh[1]
+previousSweepLow = sweepLow[1]
 nextCandleLower = close < close[1]
 nextCandleHiger = close > close[1]
-bearishSweepAndBaselineSignal = close < baseLine and previousLiquidity and nextCandleLower
-bullishSweepAndBaselineSignal = close > baseLine and previousLiquidity and nextCandleHiger
-alertcondition(bearishSweepAndBaselineSignal or bullishSweepAndBaselineSignal, title="Liquidity Followed by Baseline", message="A liquidity followed by the baseline trend was detected.")
-plotshape(series= showSweepBaseline ? bearishSweepAndBaselineSignal : na, location=location.abovebar, color=color.red, style=shape.labeldown, title="Bearish Sweep After Baseline", text="Bearish")
-plotshape(series= showSweepBaseline ? bullishSweepAndBaselineSignal : na, location=location.belowbar, color=color.green, style=shape.labelup, title="Bullish Sweep After Baseline", text="Bullish")
+strongBearishCandle = C_EngulfingBearish or nextCandleLower
+strongBullishCandle = C_EngulfingBullish or nextCandleHiger
+bearishReversalSignal = previousSweepHigh and strongBearishCandle
+bullishReversalSignal = previousSweepLow and strongBullishCandle
 
-// Liquidity Followed by Cloud
-bearishSweepAndCloudSignal = close < leadLine1 and cloudBearish and previousLiquidity and nextCandleLower
-bullishSweepAndCloudSignal = close > leadLine1 and cloudBullish and previousLiquidity and nextCandleHiger
-alertcondition(bearishSweepAndCloudSignal or bullishSweepAndCloudSignal, title="Liquidity Followed by Cloud", message="A liquidity followed by the cloud trend was detected.")
-plotshape(series= showSweepCloud ? bearishSweepAndCloudSignal : na, location=location.abovebar, color=color.red, style=shape.labeldown, title="Bearish Sweep After Cloud", text="Bearish")
-plotshape(series= showSweepCloud ? bullishSweepAndCloudSignal : na, location=location.belowbar, color=color.green, style=shape.labelup, title="Bullish Sweep After Cloud", text="Bullish")
+plotshape(series= showReversalPattern ? bearishReversalSignal : na, location=location.abovebar, color=bearCss, style=shape.labeldown, title="Bearish Reversal Pattern", text="Reversal", textcolor=whiteCss)
+plotshape(series= showReversalPattern ? bullishReversalSignal : na, location=location.belowbar, color=bullCss, style=shape.labelup, title="Bullish Reversal Pattern", text="Reversal", textcolor=whiteCss)
+alertcondition(bearishReversalSignal or bullishReversalSignal, title="Reversal Potential Pattern", message="Reversal Potential Pattern was detected.")
+
+// Continuation Potential Pattern - After having a trend and a strong candle
+downTrend = close < leadLine1 and close < leadLine2 and leadLine1 < leadLine2
+upTrend = close > leadLine1 and close > leadLine2 and leadLine1 > leadLine2 
+bearishContinuationSignal = downTrend and C_EngulfingBearish
+bullishContinuationSignal = upTrend and C_EngulfingBullish
+
+plotshape(series= showContinuationPattern ? bearishContinuationSignal : na, location=location.abovebar, color=lowCss, style=shape.labeldown, title="Bearish Continuation Pattern", text="BC", textcolor=whiteCss)
+plotshape(series= showContinuationPattern ? bullishContinuationSignal : na, location=location.belowbar, color=highCss, style=shape.labelup, title="Bullish Continuation Pattern", text="BC", textcolor=whiteCss)
+alertcondition(bearishContinuationSignal or bullishContinuationSignal, title="Continuation Pattern", message="Continuation Pattern was detected.")
+
+// All in one condition
+allConditions = bearishContinuationSignal or bullishContinuationSignal or bearishReversalSignal or bullishReversalSignal,
+alertcondition(allConditions, title="Patterns", message="A Pattern was detected.")

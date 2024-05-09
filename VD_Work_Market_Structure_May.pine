@@ -76,7 +76,6 @@ showReversalPattern = input(false, "Show Reversal Pattern", group = 'Reversal Pa
 showContinuationPattern = input(false, "Show Continuation Pattern", group = 'Continuation Pattern')
 
 
-
 //---------------------------------------------------------------------------------------------------------------------}
 // Ichimoku
 //---------------------------------------------------------------------------------------------------------------------{
@@ -374,13 +373,18 @@ alertcondition(C_EngulfingBullish or C_EngulfingBearish, title = "Engulfing", me
 //---------------------------------------------------------------------------------------------------------------------}
 // Strategy alerts
 //---------------------------------------------------------------------------------------------------------------------{
+
+// Detect all the engulfing candles
+EngulfingBullish = C_WhiteBody and C_LongBody and C_BlackBody[1] and C_SmallBody[1] and close >= open[1] and open <= close[1] and ( close > open[1] or open < close[1] )
+EngulfingBearish = C_BlackBody and C_LongBody and C_WhiteBody[1] and C_SmallBody[1] and close <= open[1] and open >= close[1] and ( close < open[1] or open > close[1] )
+
 // Reversal Potential Pattern - After having a sweep liquidity and a strong candle
 previousSweepHigh = sweepHigh[1]
 previousSweepLow = sweepLow[1]
 nextCandleLower = close < close[1]
 nextCandleHiger = close > close[1]
-strongBearishCandle = C_EngulfingBearish or nextCandleLower
-strongBullishCandle = C_EngulfingBullish or nextCandleHiger
+strongBearishCandle = EngulfingBearish or nextCandleLower
+strongBullishCandle = EngulfingBullish or nextCandleHiger
 bearishReversalSignal = previousSweepHigh and strongBearishCandle
 bullishReversalSignal = previousSweepLow and strongBullishCandle
 
@@ -391,8 +395,8 @@ alertcondition(bearishReversalSignal or bullishReversalSignal, title="Reversal P
 // Continuation Potential Pattern - After having a trend and a strong candle
 downTrend = close < leadLine1 and close < leadLine2 and leadLine1 < leadLine2
 upTrend = close > leadLine1 and close > leadLine2 and leadLine1 > leadLine2 
-bearishContinuationSignal = downTrend and C_EngulfingBearish
-bullishContinuationSignal = upTrend and C_EngulfingBullish
+bearishContinuationSignal = downTrend and EngulfingBearish
+bullishContinuationSignal = upTrend and EngulfingBullish
 
 plotshape(series= showContinuationPattern ? bearishContinuationSignal : na, location=location.abovebar, color=lowCss, style=shape.labeldown, title="Bearish Continuation Pattern", text="BC", textcolor=whiteCss)
 plotshape(series= showContinuationPattern ? bullishContinuationSignal : na, location=location.belowbar, color=highCss, style=shape.labelup, title="Bullish Continuation Pattern", text="BC", textcolor=whiteCss)

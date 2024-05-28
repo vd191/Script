@@ -342,7 +342,7 @@ patternLabelPosHigh = high + (ta.atr(30) * 0.6)
 C_EngulfingBearishNumberOfCandles = 2
 C_EngulfingBearish = C_DownTrend and C_BlackBody and C_LongBody and C_WhiteBody[1] and C_SmallBody[1] and close <= open[1] and open >= close[1] and ( close < open[1] or open > close[1] )
 
-if C_EngulfingBearish
+if C_EngulfingBearish and showEnguflingLabel
 
     label.new(bar_index, showEnguflingLabel ? patternLabelPosHigh : na, text="BE", style=label.style_label_down, color = lightRedCss, textcolor=textColor, tooltip = ttBearishEngulfing)
 
@@ -353,7 +353,7 @@ bgcolor( engulfingBearishBg ? lightRedCss : na, offset=-(C_EngulfingBearishNumbe
 C_EngulfingBullishNumberOfCandles = 2
 C_EngulfingBullish = C_UpTrend and C_WhiteBody and C_LongBody and C_BlackBody[1] and C_SmallBody[1] and close >= open[1] and open <= close[1] and ( close > open[1] or open < close[1] )
 
-if C_EngulfingBullish
+if C_EngulfingBullish and showEnguflingLabel
     label.new(bar_index, showEnguflingLabel ? patternLabelPosLow : na, text="BE", style=label.style_label_up, color = lightBlueCss, textcolor=textColor, tooltip = ttBullishEngulfing)
 
 engulfingBullishBg = showEnguflingBg ? ta.highest(C_EngulfingBullish?1:0, C_EngulfingBullishNumberOfCandles)!=0 : na

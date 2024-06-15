@@ -1,5 +1,5 @@
 //@version=5
-indicator("VD Works - Market Structure", overlay = true, max_lines_count = 500, max_labels_count = 500)
+indicator("VD Works - Market Structure and Forecasting", overlay = true, max_lines_count = 500, max_labels_count = 500)
 //---------------------------------------------------------------------------------------------------------------------}
 // Ichimoku: Trend dectection - Break of Structure and Change of character
 // IDM and Sweep: To consume available liquidity - The large counter trend orders which are placed 
@@ -11,21 +11,38 @@ indicator("VD Works - Market Structure", overlay = true, max_lines_count = 500, 
 //---------------------------------------------------------------------------------------------------------------------{
 // Defining common colour variables
 commonMidNight = color.new(#0a0913, 0)
+
 commonGreen = color.new(#089981, 0)  
 commonRed = color.new(#ff5252, 0)    
+commonBlue = color.new(#3179f5, 0) 
+
 commonLightGreen = color.rgb(67, 160, 71, 90)
 commonLightRed = color.rgb(244, 67, 54, 90)
-commonLightBlue = color.new(color.blue, 90)
+commonLightBlue = color.new(#3179f5, 90)
+
 commonMoreGreen = color.new(#089981, 50)  
 commonMoreRed = color.new(#ff5252, 50)    
+commonMoreBlue = color.new(#3179f5, 50)  
+
 commonGrey = color.gray
 commonWhite = color.white
 
 // Ichimoku colour variables
 bullCss = commonGreen
 bearCss = commonRed
+
+greenCss = commonGreen
+redCss = commonRed
+blueCss = commonBlue
+
 lightBlueCss = commonLightBlue
 lightRedCss = commonLightRed
+lightGreenCss = commonLightGreen
+
+moreBlueCss = commonMoreBlue
+moreRedCss = commonMoreRed
+moreGreenCss = commonLightGreen
+
 conversionLineCss = commonGreen
 baseLineCss = commonMidNight
 laggingCss = commonRed
@@ -50,6 +67,19 @@ conversionPeriods = input.int(9, minval=1, title="Conversion Line Length", group
 basePeriods = input.int(26, minval=1, title="Base Line Length", group = 'Ichimoku')
 laggingSpan2Periods = input.int(52, minval=1, title="Leading Span B Length", group = 'Ichimoku')
 displacement = input.int(26, minval=1, title="Lagging Span", group = 'Ichimoku')
+
+// MACD Forcasting
+showMacdForecast = input(true, "Show MACD Forecast", group = 'MACD Forecast')
+fast = input.int(12, 'Fast Length', minval = 2, group = 'MACD Forecast')
+slow = input.int(26, 'Slow Length', minval = 2, group = 'MACD Forecast')
+sigLen = input.int(9, 'Signal Length', minval = 2, group = 'MACD Forecast')
+trend = input.string('MACD - Signal', 'Trend Determination', options = ['MACD', 'MACD - Signal'], group = 'MACD Forecast')
+maxMemory = input.int(50, 'Maximum Memory', minval = 2, group = 'MACD Forecast')
+fcast = input.int(100, 'Forecasting Length', minval = 1, group = 'MACD Forecast')
+upPer = input(80, 'Top Percentile', group = 'MACD Forecast')
+midPer = input(50, 'Average Percentage', group = 'MACD Forecast')
+dnPer = input(20, 'Bottom Percentile', group = 'MACD Forecast')
+signalArea = input(true, 'Signal Area', inline = 'signal', group = 'MACD Forecast')
 
 // IDM and Sweep default input values 
 showChoch = input(false, "Show CHoCH", group = 'Liquidity Sweep')
@@ -98,6 +128,131 @@ p1 = plot(showIchimoku ? leadLine1 : na, offset = displacement - 1, color=leadin
 p2 = plot(showIchimoku ? leadLine2 : na, offset = displacement - 1, color=leadingSpanBCss, title="Leading Span B", display = display.none)
 
 fill(p1, p2, color = leadLine1 > leadLine2 ? upperCloudCss : lowwerCloudCss, title= "Kumo Cloud")
+
+
+//---------------------------------------------------------------------------------------------------------------------}
+// MACD Forecasting
+//---------------------------------------------------------------------------------------------------------------------{
+// Default style colours
+upLine = blueCss
+dnLine = redCss
+
+upArea = lightBlueCss
+dnArea = lightRedCss
+
+signalBull = moreGreenCss
+signalBear = moreRedCss
+
+// Types
+type vector
+    array<float> id
+
+type holder
+    array<vector> id
+
+// Methods
+barIdx = bar_index
+
+method populate(holder get_holder, idx, init_price)=>
+    if get_holder.id.size() < idx+1
+        get_holder.id.push(vector.new(array.new<float>(0)))
+
+    get_holder.id.get(idx).id.unshift(close - init_price)
+    
+    //Remove last element if array size is greater than specified limit
+    if get_holder.id.get(idx).id.size() > maxMemory
+        get_holder.id.get(idx).id.pop()
+
+method forecast(holder get_holder, idx, init_price, upper_coords, mid_coords, lower_coords)=>
+    max_horizon = get_holder.id.size()
+
+    x = 0
+    for i = idx-1 to math.min(idx+fcast, max_horizon-1)
+        get_vector = get_holder.id.get(i)
+        
+        //Compute forecasts
+        upper = init_price + get_vector.id.percentile_linear_interpolation(upPer)
+        mid   = init_price + get_vector.id.percentile_linear_interpolation(midPer)
+        lower = init_price + get_vector.id.percentile_linear_interpolation(dnPer)
+
+        //Append coordinates
+        upper_coords.push(chart.point.from_index(barIdx+x, upper))
+        mid_coords.push(chart.point.from_index(barIdx+x, mid))
+        lower_coords.unshift(chart.point.from_index(barIdx+x, lower))
+        x += 1
+
+//Calculations
+var memory = map.new<int, holder>()
+var up_idx = 0
+var dn_idx = 0
+var uptrend_init_price = close
+var downtrend_init_price = close
+
+//Compute MACD
+[macd, signal, _] = ta.macd(close, fast, slow, sigLen)
+
+//Populate map
+if barstate.isfirst
+    memory.put(1, holder.new(array.new<vector>(0)))
+    memory.put(0, holder.new(array.new<vector>(0)))
+
+trigger = switch trend
+    'MACD' => ta.cross(macd, 0)
+    => ta.cross(macd, signal)
+
+uptrend = trend == 'MACD' ? macd > 0 : macd > signal
+downtrend = trend == 'MACD' ? macd < 0 : macd < signal
+
+//Reference prices
+uptrend_init_price := uptrend and not uptrend[1] ? close : uptrend_init_price
+downtrend_init_price := downtrend and not downtrend[1] ? close : downtrend_init_price
+init_value = uptrend ? uptrend_init_price : downtrend_init_price
+
+//Uptrend
+if uptrend
+    get_holder = memory.get(1)
+    get_holder.populate(up_idx, uptrend_init_price)
+
+//Downtrend
+if downtrend
+    get_holder = memory.get(0)
+    get_holder.populate(dn_idx, downtrend_init_price)
+
+//Indices
+up_idx := not uptrend ? 0 : up_idx + 1
+dn_idx := not downtrend ? 0 : dn_idx + 1
+
+if trigger
+    upper_coords = array.new<chart.point>(0)
+    mid_coords = array.new<chart.point>(0)
+    lower_coords = array.new<chart.point>(0)
+
+    if uptrend
+        get_holder = memory.get(1)
+        get_holder.forecast(up_idx, uptrend_init_price, upper_coords, mid_coords, lower_coords)
+    else
+        get_holder = memory.get(0)
+        get_holder.forecast(dn_idx, downtrend_init_price, upper_coords, mid_coords, lower_coords)
+    
+    polyline.delete(polyline.new(showMacdForecast ? mid_coords : na, line_color = uptrend ? upLine : dnLine)[1])
+
+    //Area
+    polyline.delete(polyline.new(showMacdForecast ? array.concat(upper_coords, lower_coords) : na
+      , line_color = na
+      , fill_color = uptrend ? upArea : dnArea)
+      [1])
+
+// Plots
+init_plot = plot(showMacdForecast ? init_value : na, "Reference Price", init_value != init_value[1] ? na : color.gray)
+price_plot = plot(showMacdForecast ? close : na, editable = false, display = display.none)
+
+top_css = not signalArea ? na : uptrend ? signalBull : color.new(chart.bg_color, 100)
+btm_css = not signalArea ? na : uptrend ? color.new(chart.bg_color, 100) : signalBear
+
+//Price to Reference Area
+topValue = showMacdForecast ? math.max(close, uptrend ? uptrend_init_price : downtrend_init_price) : na
+bottomValue = showMacdForecast ? math.min(close, uptrend ? uptrend_init_price : downtrend_init_price) : na
+fill(init_plot, price_plot, top_value = topValue, bottom_value = bottomValue, top_color = top_css, bottom_color = btm_css)
 
 
 //---------------------------------------------------------------------------------------------------------------------}
